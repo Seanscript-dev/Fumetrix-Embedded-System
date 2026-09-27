@@ -1,141 +1,286 @@
 "use client";
 
-import { useEffect, useState } from "react";
-{/*To edit: temporary vibe coded backend*/}
-type Reading = {
-  pm25: number;
-  voc: number;
-  temp: number;
-  airflow: number;
-  timestamp: string;
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
+
+type AuthForm = "login" | "signup" | "recovery";
+
+type FormMessage = {
+  text: string;
+  tone: "error" | "success";
 };
 
-export default function Home() {
-  const [reading, setReading] = useState<Reading | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function LoginPage() {
+  const router = useRouter();
+  const [activeForm, setActiveForm] = useState<AuthForm>("login");
+  const [loginMessage, setLoginMessage] = useState<FormMessage | null>(null);
+  const [signupMessage, setSignupMessage] = useState<FormMessage | null>(null);
+  const [recoveryMessage, setRecoveryMessage] = useState<FormMessage | null>(
+    null,
+  );
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    async function fetchLatest() {
-      try {
-        const res = await fetch("/api/readings/latest");
-        const data = await res.json();
-        setReading(data);
-      } catch (err) {
-        console.error("Failed to fetch reading:", err);
-      } finally {
-        setLoading(false);
-      }
+    if (!redirecting) return;
+
+    const timeoutId = window.setTimeout(() => router.push("/dashboard"), 700);
+    return () => window.clearTimeout(timeoutId);
+  }, [redirecting, router]);
+
+  function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoginMessage({
+      text: "AUTHENTICATION ACCEPTED...",
+      tone: "success",
+    });
+    setRedirecting(true);
+  }
+
+  function handleSignup(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const password = formData.get("password");
+    const confirmation = formData.get("confirm");
+
+    if (password !== confirmation) {
+      setSignupMessage({
+        text: "ERROR: ACCESS KEYS DO NOT MATCH.",
+        tone: "error",
+      });
+      return;
     }
 
-    fetchLatest();
-    const interval = setInterval(fetchLatest, 5000); // poll every 5s
-    return () => clearInterval(interval);
-  }, []);
+    setSignupMessage({
+      text: "OPERATOR ACCOUNT CREATED.",
+      tone: "success",
+    });
+  }
+
+  function handleRecovery(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRecoveryMessage({
+      text: "RESET REQUEST QUEUED. CHECK REGISTERED CONTACT.",
+      tone: "success",
+    });
+  }
+
+  function switchForm(form: AuthForm) {
+    setActiveForm(form);
+    setLoginMessage(null);
+    setSignupMessage(null);
+    setRecoveryMessage(null);
+  }
 
   return (
-    <div className="min-h-screen bg-[#0f1a24] text-white p-8 font-mono">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-            FluxLabs / Monitoring
-          </p>
-          <h1 className="text-3xl font-bold tracking-wide mt-1">DASHBOARD</h1>
-        </div>
-        <div className="text-xs text-[#6b7a86] tracking-widest">
-          SYSTEM{" "}
-          <span className={reading ? "text-[#7ea88a]" : "text-[#6b7a86]"}>
-            ● {reading ? "ONLINE" : "OFFLINE"}
-          </span>
-        </div>
-      </div>
-
-      {/* Status cards */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
-        <div className="bg-[#16232e] border-l-4 border-[#7ea88a] p-6">
-          <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-            Current Exposure
-          </p>
-          <p className="text-4xl font-bold mt-3 text-[#6b7a86]">
-            {loading ? "…" : reading ? reading.pm25 : "—"}
-          </p>
-          <p className="text-xs text-[#6b7a86] mt-1">
-            {reading ? "µg/m³" : "No data yet"}
-          </p>
-        </div>
-
-        <div className="bg-[#16232e] border-l-4 border-[#c9a876] p-6">
-          <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-            Extraction Status
-          </p>
-          <p className="text-4xl font-bold mt-3 text-[#6b7a86]">
-            {loading ? "…" : reading ? `${reading.airflow}%` : "—"}
-          </p>
-          <p className="text-xs text-[#6b7a86] mt-1">
-            {reading ? "Airflow" : "No data yet"}
-          </p>
-        </div>
-      </div>
-
-      {/* Sensor cards */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
-        {["PM-01", "GAS-01", "TMP-01", "AIR-01"].map((id) => (
-          <div key={id} className="bg-[#16232e] p-5">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-xs tracking-widest">{id}</p>
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  reading ? "bg-[#7ea88a]" : "bg-[#6b7a86]"
-                }`}
-              />
+    <>
+      <div className="crt-overlay" aria-hidden="true" />
+      <main className="login-page">
+        <div className="login-container">
+          <section className="login-info">
+            <div className="brand-large">
+              <div className="brand-mark">
+                <Image
+                  src="/assets/logo.svg"
+                  alt="FumeTrix air quality mark"
+                  width={58}
+                  height={58}
+                  priority
+                />
+              </div>
+              <div>
+                <h1>FumeTrix</h1>
+                <span>AIR QUALITY GUARD</span>
+              </div>
             </div>
-            <p className="text-2xl font-bold text-[#6b7a86]">—</p>
-            <p className="text-xs text-[#6b7a86] mt-2">
-              {reading ? "LIVE" : "NO DATA"}
-            </p>
-          </div>
-        ))}
-      </div>
 
-      {/* Telemetry history */}
-      <div className="bg-[#16232e] p-6 mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-              Telemetry
-            </p>
-            <p className="font-bold tracking-wide">EXPOSURE HISTORY</p>
-          </div>
-          <p className="text-xs text-[#6b7a86]">LAST 24 HOURS</p>
-        </div>
-        <div className="h-40 flex items-center justify-center text-[#6b7a86] text-sm border border-[#24333f]">
-          {/* chart component goes here later */}
-          No telemetry data yet
-        </div>
-      </div>
-
-      {/* Summary + Notifications */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-[#16232e] p-6">
-          <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-            Session
-          </p>
-          <p className="font-bold tracking-wide mb-3">EXPOSURE SUMMARY</p>
-          <p className="text-3xl font-bold text-[#6b7a86]">—:—:—</p>
-        </div>
-
-        <div className="bg-[#16232e] p-6">
-          <div className="flex justify-between items-center mb-3">
-            <div>
-              <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-                Recent Events
+            <div className="system-description">
+              <p className="terminal-label">WORKSTATION MONITORING SYSTEM</p>
+              <h2>
+                SOLDER FUME
+                <br />
+                EXPOSURE CONTROL
+              </h2>
+              <p>
+                Real-time monitoring of particulate matter, VOC concentration,
+                temperature, and extractor airflow performance.
               </p>
-              <p className="font-bold tracking-wide">NOTIFICATIONS</p>
             </div>
-          </div>
-          <p className="text-sm text-[#6b7a86]">No notifications yet</p>
+
+            <div className="system-check">
+              <div className="check-title">SYSTEM INITIALIZATION</div>
+              {["PM2.5 SENSOR", "VOC SENSOR", "TEMPERATURE", "AIRFLOW"].map(
+                (sensor) => (
+                  <div className="check-row" key={sensor}>
+                    <span>{sensor}</span>
+                    <strong className="online">ONLINE</strong>
+                  </div>
+                ),
+              )}
+            </div>
+          </section>
+
+          <section className="login-panel" aria-label="System access">
+            <div className="panel-header">
+              <span>SYSTEM ACCESS</span>
+              <span>FMX-01</span>
+            </div>
+
+            <div className="login-tabs" role="tablist" aria-label="Account">
+              <button
+                className={`login-tab${activeForm === "login" ? " active" : ""}`}
+                type="button"
+                role="tab"
+                aria-selected={activeForm === "login"}
+                onClick={() => switchForm("login")}
+              >
+                LOGIN
+              </button>
+              <button
+                className={`login-tab${activeForm === "signup" ? " active" : ""}`}
+                type="button"
+                role="tab"
+                aria-selected={activeForm === "signup"}
+                onClick={() => switchForm("signup")}
+              >
+                SIGN UP
+              </button>
+            </div>
+
+            <form
+              className={`auth-form${activeForm === "login" ? "" : " hidden"}`}
+              onSubmit={handleLogin}
+            >
+              <label htmlFor="loginUsername">OPERATOR ID</label>
+              <input
+                id="loginUsername"
+                name="username"
+                type="text"
+                placeholder="ENTER OPERATOR ID"
+                autoComplete="username"
+                required
+              />
+              <label htmlFor="loginPassword">ACCESS KEY</label>
+              <input
+                id="loginPassword"
+                name="password"
+                type="password"
+                placeholder="ENTER ACCESS KEY"
+                autoComplete="current-password"
+                required
+              />
+              <button className="industrial-button" type="submit">
+                ENTER SYSTEM
+              </button>
+              <p
+                className={`form-message${loginMessage ? ` ${loginMessage.tone}` : ""}`}
+                aria-live="polite"
+              >
+                {loginMessage?.text}
+              </p>
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => switchForm("recovery")}
+              >
+                FORGOT ACCESS KEY?
+              </button>
+            </form>
+
+            <form
+              className={`auth-form${activeForm === "signup" ? "" : " hidden"}`}
+              onSubmit={handleSignup}
+            >
+              <label htmlFor="signupUsername">OPERATOR ID</label>
+              <input
+                id="signupUsername"
+                name="username"
+                type="text"
+                placeholder="CREATE OPERATOR ID"
+                autoComplete="username"
+                required
+              />
+              <label htmlFor="signupPassword">ACCESS KEY</label>
+              <input
+                id="signupPassword"
+                name="password"
+                type="password"
+                placeholder="CREATE ACCESS KEY"
+                autoComplete="new-password"
+                required
+              />
+              <label htmlFor="signupConfirm">CONFIRM ACCESS KEY</label>
+              <input
+                id="signupConfirm"
+                name="confirm"
+                type="password"
+                placeholder="CONFIRM ACCESS KEY"
+                autoComplete="new-password"
+                required
+              />
+              <button className="industrial-button" type="submit">
+                CREATE ACCOUNT
+              </button>
+              <p
+                className={`form-message${signupMessage ? ` ${signupMessage.tone}` : ""}`}
+                aria-live="polite"
+              >
+                {signupMessage?.text}
+              </p>
+            </form>
+
+            <form
+              className={`auth-form${activeForm === "recovery" ? "" : " hidden"}`}
+              onSubmit={handleRecovery}
+            >
+              <div className="form-heading">
+                <strong>ACCESS KEY RECOVERY</strong>
+                <span>IDENTITY VERIFICATION REQUIRED</span>
+              </div>
+              <label htmlFor="recoveryUsername">OPERATOR ID</label>
+              <input
+                id="recoveryUsername"
+                name="username"
+                type="text"
+                placeholder="ENTER OPERATOR ID"
+                required
+              />
+              <label htmlFor="recoveryContact">REGISTERED CONTACT</label>
+              <input
+                id="recoveryContact"
+                name="contact"
+                type="email"
+                placeholder="ENTER EMAIL ADDRESS"
+                autoComplete="email"
+                required
+              />
+              <button className="industrial-button" type="submit">
+                REQUEST RESET LINK
+              </button>
+              <p
+                className={`form-message${recoveryMessage ? ` ${recoveryMessage.tone}` : ""}`}
+                aria-live="polite"
+              >
+                {recoveryMessage?.text}
+              </p>
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => switchForm("login")}
+              >
+                RETURN TO LOGIN
+              </button>
+            </form>
+
+            <div className="login-footer">
+              <span>SYSTEM STATUS</span>
+              <span className="status-indicator">
+                <i aria-hidden="true" /> READY
+              </span>
+            </div>
+          </section>
         </div>
-      </div>
-    </div>
+      </main>
+    </>
   );
 }

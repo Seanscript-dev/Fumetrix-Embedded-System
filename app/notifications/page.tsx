@@ -1,106 +1,64 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import AppShell from "../components/sidebar";
+import {
+  notifications,
+  type NotificationType,
+} from "../data";
 
-type Notification = {
-  id: number;
-  title: string;
-  message: string;
-  severity: "unsafe" | "caution" | "system";
-  timestamp: string;
-};
+type NotificationFilter = "all" | NotificationType;
 
-export default function Notifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [filter, setFilter] = useState<"all" | "unsafe" | "caution" | "system">("all");
-  const [loading, setLoading] = useState(true);
+const filters: NotificationFilter[] = [
+  "all",
+  "unsafe",
+  "caution",
+  "system",
+];
 
-  useEffect(() => {
-    async function fetchNotifications() {
-      try {
-        const res = await fetch("/api/notifications");
-        const data = await res.json();
-        setNotifications(data);
-      } catch (err) {
-        console.error("Failed to fetch notifications:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const filtered =
-    filter === "all"
+export default function NotificationsPage() {
+  const [activeFilter, setActiveFilter] =
+    useState<NotificationFilter>("all");
+  const visibleNotifications =
+    activeFilter === "all"
       ? notifications
-      : notifications.filter((n) => n.severity === filter);
-
-  const severityColor = {
-    unsafe: "border-red-500",
-    caution: "border-[#c9a876]",
-    system: "border-[#7ea88a]",
-  };
+      : notifications.filter((item) => item.type === activeFilter);
 
   return (
-    <div className="min-h-screen bg-[#0f1a24] text-white p-8 font-mono">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-            FluxLabs / System Events
-          </p>
-          <h1 className="text-3xl font-bold tracking-wide mt-1">
-            NOTIFICATIONS
-          </h1>
-        </div>
-        <div className="text-xs text-[#6b7a86] tracking-widest">
-          ● MONITORING
-        </div>
-      </div>
-
-      {/* Filter tabs */}
-      <div className="flex gap-3 mb-6">
-        {(["all", "unsafe", "caution", "system"] as const).map((tab) => (
+    <AppShell
+      breadcrumb="FUMETRIX / SYSTEM EVENTS"
+      title="NOTIFICATIONS"
+      status="MONITORING"
+    >
+      <section className="notification-toolbar" aria-label="Filter notifications">
+        {filters.map((filter) => (
           <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={`px-4 py-2 text-xs tracking-widest uppercase border ${
-              filter === tab
-                ? "bg-[#c9a876] text-[#0f1a24] border-[#c9a876]"
-                : "border-[#24333f] text-[#6b7a86]"
-            }`}
+            className={`filter-button${activeFilter === filter ? " active" : ""}`}
+            key={filter}
+            type="button"
+            aria-pressed={activeFilter === filter}
+            onClick={() => setActiveFilter(filter)}
           >
-            {tab}
+            {filter.toUpperCase()}
           </button>
         ))}
-      </div>
+      </section>
 
-      {/* Notification list */}
-      <div className="flex flex-col gap-4">
-        {loading ? (
-          <div className="text-[#6b7a86] text-sm">Loading...</div>
-        ) : filtered.length === 0 ? (
-          <div className="text-[#6b7a86] text-sm">No notifications yet</div>
-        ) : (
-          filtered.map((n) => (
-            <div
-              key={n.id}
-              className={`bg-[#16232e] border-l-4 ${severityColor[n.severity]} p-5 flex justify-between items-start`}
-            >
-              <div>
-                <p className="font-bold tracking-wide text-sm uppercase">
-                  {n.title}
-                </p>
-                <p className="text-xs text-[#6b7a86] mt-1">{n.message}</p>
-              </div>
-              <p className="text-xs text-[#6b7a86]">{n.timestamp}</p>
+      <section className="notification-list" aria-live="polite">
+        {visibleNotifications.map((item) => (
+          <article
+            className={`notification-item ${item.type}`}
+            key={`${item.time}-${item.title}`}
+          >
+            <i aria-hidden="true" />
+            <div>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
             </div>
-          ))
-        )}
-      </div>
-    </div>
+            <time className="notification-time">{item.time}</time>
+          </article>
+        ))}
+      </section>
+    </AppShell>
   );
 }

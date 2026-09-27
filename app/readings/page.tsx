@@ -1,160 +1,209 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import AppShell from "../components/sidebar";
+import { readings, type Reading, type ReadingStatus } from "../data";
 
-type Reading = {
-  id: number;
-  timestamp: string;
-  pm25: number;
-  voc: number;
-  temp: number;
-  airflow: number;
-  status: "SAFE" | "CAUTION" | "UNSAFE";
+type SensorFilter = "all" | "PM2.5" | "VOC" | "Temperature" | "Airflow";
+
+type SensorColumn = {
+  label: string;
+  value: (reading: Reading) => string;
 };
 
-export default function Readings() {
-  const [readings, setReadings] = useState<Reading[]>([]);
-  const [selected, setSelected] = useState<Reading | null>(null);
-  const [loading, setLoading] = useState(true);
+const sensorColumns: Record<Exclude<SensorFilter, "all">, SensorColumn> = {
+  "PM2.5": {
+    label: "PM2.5",
+    value: (reading) => `${reading.pm.toFixed(1)} µg/m³`,
+  },
+  VOC: {
+    label: "VOC",
+    value: (reading) => `${reading.voc} ppb`,
+  },
+  Temperature: {
+    label: "TEMP",
+    value: (reading) => `${reading.temperature.toFixed(1)} °C`,
+  },
+  Airflow: {
+    label: "AIRFLOW",
+    value: (reading) => `${reading.airflow}%`,
+  },
+};
 
-  useEffect(() => {
-    async function fetchReadings() {
-      try {
-        const res = await fetch("/api/readings");
-        const data = await res.json();
-        setReadings(data);
-      } catch (err) {
-        console.error("Failed to fetch readings:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
+const statusClass: Record<ReadingStatus, string> = {
+  SAFE: "safe",
+  CAUTION: "caution",
+  UNSAFE: "unsafe",
+};
 
-    fetchReadings();
-    const interval = setInterval(fetchReadings, 5000);
-    return () => clearInterval(interval);
-  }, []);
+export default function ReadingsPage() {
+  const [sensorFilter, setSensorFilter] = useState<SensorFilter>("all");
+  const [selectedReading, setSelectedReading] = useState<Reading | null>(null);
+
+  const visibleColumns =
+    sensorFilter === "all"
+      ? Object.values(sensorColumns)
+      : [sensorColumns[sensorFilter]];
+
+  function exportReadings() {
+    const rows = [
+      ["TIME", "PM2.5", "VOC", "TEMPERATURE", "AIRFLOW", "STATUS"],
+      ...readings.map((reading) => [
+        reading.time,
+        reading.pm.toFixed(1),
+        String(reading.voc),
+        reading.temperature.toFixed(1),
+        String(reading.airflow),
+        reading.status,
+      ]),
+    ];
+    const csv = rows.map((row) => row.join(",")).join("\r\n");
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "fumetrix-readings.csv";
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
 
   return (
-    <div className="min-h-screen bg-[#0f1a24] text-white p-8 font-mono">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-            FluxLabs / Telemetry
-          </p>
-          <h1 className="text-3xl font-bold tracking-wide mt-1">
-            SENSOR READINGS
-          </h1>
-        </div>
-        <div className="text-xs text-[#6b7a86] tracking-widest">
-          ● {readings.length > 0 ? "LIVE" : "IDLE"}
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-4 mb-6">
-        <div>
-          <p className="text-xs text-[#6b7a86] tracking-widest mb-1">
-            SENSOR SOURCE
-          </p>
-          <select className="bg-[#16232e] border border-[#24333f] px-3 py-2 text-sm">
-            <option>ALL SENSORS</option>
+    <AppShell
+      breadcrumb="FUMETRIX / TELEMETRY"
+      title="SENSOR READINGS"
+      status="LIVE"
+    >
+      <section className="reading-toolbar">
+        <label>
+          <span>SENSOR SOURCE</span>
+          <select
+            value={sensorFilter}
+            onChange={(event) =>
+              setSensorFilter(event.currentTarget.value as SensorFilter)
+            }
+          >
+            <option value="all">ALL SENSORS</option>
+            <option value="PM2.5">PM2.5</option>
+            <option value="VOC">VOC</option>
+            <option value="Temperature">TEMPERATURE</option>
+            <option value="Airflow">AIRFLOW</option>
           </select>
-        </div>
-        <div>
-          <p className="text-xs text-[#6b7a86] tracking-widest mb-1">
-            TIME RANGE
-          </p>
-          <select className="bg-[#16232e] border border-[#24333f] px-3 py-2 text-sm">
-            <option>LAST 24 HOURS</option>
+        </label>
+        <label>
+          <span>TIME RANGE</span>
+          <select defaultValue="24h">
+            <option value="24h">LAST 24 HOURS</option>
+            <option value="7d">LAST 7 DAYS</option>
           </select>
-        </div>
-        <button className="self-end bg-[#c9a876] text-[#0f1a24] px-4 py-2 text-sm font-bold">
+        </label>
+        <button
+          className="industrial-button small-button"
+          type="button"
+          onClick={exportReadings}
+        >
           EXPORT DATA
         </button>
-      </div>
+      </section>
 
-      {/* Table */}
-      <div className="bg-[#16232e] p-6 mb-8">
-        <div className="flex justify-between items-center mb-4">
+      <section className="panel readings-panel">
+        <div className="panel-title">
           <div>
-            <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-              Telemetry Database
-            </p>
-            <p className="font-bold tracking-wide">COMPLETE SENSOR LOG</p>
+            <span>TELEMETRY DATABASE</span>
+            <h2>COMPLETE SENSOR LOG</h2>
+          </div>
+          <span>AUTO REFRESH: 05 SEC</span>
+        </div>
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">TIME</th>
+                {visibleColumns.map((column) => (
+                  <th scope="col" key={column.label}>
+                    {column.label}
+                  </th>
+                ))}
+                <th scope="col">STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {readings.map((reading) => (
+                <tr
+                  key={reading.time}
+                  tabIndex={0}
+                  aria-label={`Select reading from ${reading.time}`}
+                  onClick={() => setSelectedReading(reading)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedReading(reading);
+                    }
+                  }}
+                >
+                  <td>{reading.time}</td>
+                  {visibleColumns.map((column) => (
+                    <td key={column.label}>{column.value(reading)}</td>
+                  ))}
+                  <td>
+                    <span
+                      className={`reading-status ${statusClass[reading.status]}`}
+                    >
+                      {reading.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel reading-detail">
+        <div className="panel-title">
+          <div>
+            <span>SELECTED RECORD</span>
+            <h2>READING DETAILS</h2>
           </div>
         </div>
-
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-[#6b7a86] text-xs border-b border-[#24333f]">
-              <th className="pb-3 font-normal">TIME</th>
-              <th className="pb-3 font-normal">PM2.5</th>
-              <th className="pb-3 font-normal">VOC</th>
-              <th className="pb-3 font-normal">TEMP</th>
-              <th className="pb-3 font-normal">AIRFLOW</th>
-              <th className="pb-3 font-normal">STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="text-center py-8 text-[#6b7a86]">
-                  Loading...
-                </td>
-              </tr>
-            ) : readings.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-8 text-[#6b7a86]">
-                  No sensor data yet
-                </td>
-              </tr>
-            ) : (
-              readings.map((r) => (
-                <tr
-                  key={r.id}
-                  onClick={() => setSelected(r)}
-                  className="border-b border-[#24333f] cursor-pointer hover:bg-[#1c2b38]"
-                >
-                  <td className="py-3">{r.timestamp}</td>
-                  <td className="py-3">{r.pm25} µg/m³</td>
-                  <td className="py-3">{r.voc} ppb</td>
-                  <td className="py-3">{r.temp} °C</td>
-                  <td className="py-3">{r.airflow}%</td>
-                  <td className="py-3">{r.status}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Selected record details */}
-      <div className="bg-[#16232e] p-6">
-        <p className="text-xs tracking-widest text-[#6b7a86] uppercase">
-          Selected Record
-        </p>
-        <p className="font-bold tracking-wide mb-4">READING DETAILS</p>
-
-        <div className="grid grid-cols-3 gap-6">
+        <div className="detail-grid">
           {[
-            { label: "TIMESTAMP", value: selected?.timestamp },
-            { label: "PM2.5", value: selected?.pm25 },
-            { label: "VOC", value: selected?.voc },
-            { label: "TEMPERATURE", value: selected?.temp },
-            { label: "AIRFLOW", value: selected?.airflow },
-            { label: "CLASSIFICATION", value: selected?.status },
-          ].map((field) => (
-            <div key={field.label} className="border border-[#24333f] p-4">
-              <p className="text-xs text-[#6b7a86] tracking-widest mb-2">
-                {field.label}
-              </p>
-              <p className="text-lg">{field.value ?? "—"}</p>
+            {
+              label: "TIMESTAMP",
+              value: selectedReading?.time ?? "—",
+            },
+            {
+              label: "PM2.5",
+              value: selectedReading
+                ? `${selectedReading.pm.toFixed(1)} µg/m³`
+                : "—",
+            },
+            {
+              label: "VOC",
+              value: selectedReading ? `${selectedReading.voc} ppb` : "—",
+            },
+            {
+              label: "TEMPERATURE",
+              value: selectedReading
+                ? `${selectedReading.temperature.toFixed(1)} °C`
+                : "—",
+            },
+            {
+              label: "AIRFLOW",
+              value: selectedReading ? `${selectedReading.airflow}%` : "—",
+            },
+            {
+              label: "CLASSIFICATION",
+              value: selectedReading?.status ?? "—",
+            },
+          ].map(({ label, value }) => (
+            <div key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
             </div>
           ))}
         </div>
-      </div>
-    </div>
+      </section>
+    </AppShell>
   );
 }

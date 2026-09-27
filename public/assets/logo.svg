@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="logo-title logo-desc">
+	<title id="logo-title">FumeTrix monitoring badge</title>
+	<desc id="logo-desc">An industrial F mark with measured airflow lines and sensor indicators.</desc>
+	<rect x="8" y="8" width="112" height="112" fill="#1b2a38" stroke="#d8cbb3" stroke-width="3"/>
+	<path d="M15 15h34M15 15v34" fill="none" stroke="#604a3a" stroke-width="4"/>
+	<path d="M31 99V29h54M31 59h39" fill="none" stroke="#f1e9d8" stroke-width="11" stroke-linecap="square" stroke-linejoin="miter"/>
+	<path d="M31 99V29h54M31 59h39" fill="none" stroke="#604a3a" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter" opacity=".9"/>
+	<path d="M75 73h18M75 84h27M75 95h18" fill="none" stroke="#6f8f72" stroke-width="3"/>
+	<circle cx="101" cy="73" r="3" fill="#6f8f72"/>
+	<circle cx="108" cy="84" r="3" fill="#b28a4a"/>
+	<circle cx="101" cy="95" r="3" fill="#6f8f72"/>
+	<path d="M15 113h98" stroke="#604a3a" stroke-width="4"/>
+</svg>
