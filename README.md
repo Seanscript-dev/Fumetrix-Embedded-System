@@ -1,3 +1,7 @@
+<img width="1907" height="862" alt="image" src="https://github.com/user-attachments/assets/2e164ff0-8168-40ca-a59c-d706029b3364" />
+<img width="1890" height="855" alt="image" src="https://github.com/user-attachments/assets/f6a46314-80c0-43ce-9ea0-a1b873616750" />
+
+
 # Fumetrix Embedded System
 
 Fumetrix is an industrial air-quality monitoring dashboard for a solder fume extraction workstation. The interface provides operator access, telemetry views, alert monitoring, and system settings for a connected environmental sensor network.
