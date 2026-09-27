@@ -1,6 +1,9 @@
 <img width="1907" height="862" alt="image" src="https://github.com/user-attachments/assets/2e164ff0-8168-40ca-a59c-d706029b3364" />
 <img width="1890" height="855" alt="image" src="https://github.com/user-attachments/assets/f6a46314-80c0-43ce-9ea0-a1b873616750" />
 
+<img width="1891" height="856" alt="image" src="https://github.com/user-attachments/assets/12a7a106-5506-460e-8260-46d6cf7e6480" />
+
+
 
 # Fumetrix Embedded System
 
