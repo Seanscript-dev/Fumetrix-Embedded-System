@@ -1,7 +1,13 @@
 {
-  "name": "fumetrix",
+  "name": "fumetrix-embedded-system",
   "version": "1.0.0",
   "private": true,
+  "description": "Industrial air-quality monitoring dashboard and operator control interface for a solder fume extraction workstation.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Seanscript-dev/Fumetrix-Embedded-System.git"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
